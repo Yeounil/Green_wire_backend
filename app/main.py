@@ -36,13 +36,18 @@ async def lifespan(app: FastAPI):
     logger.info(f"[CONFIG] ALGORITHM: {settings.algorithm}")
     logger.info(f"[CONFIG] ACCESS_TOKEN_EXPIRE: {settings.access_token_expire_minutes} minutes")
 
-    # 뉴스 크롤링 스케줄러 시작
-    try:
-        scheduler = get_scheduler()
-        await scheduler.start()
-        logger.info("[OK] News crawling scheduler started successfully")
-    except Exception as e:
-        logger.error(f"[ERROR] Scheduler startup failed: {str(e)}")
+    # 뉴스 크롤링 스케줄러 시작 (Cloud Run 환경에서는 임시 비활성화)
+    # Cloud Run은 상태를 유지하지 않으므로 스케줄러는 Cloud Scheduler로 대체 필요
+    import os
+    if os.getenv("ENVIRONMENT") != "production":
+        try:
+            scheduler = get_scheduler()
+            await scheduler.start()
+            logger.info("[OK] News crawling scheduler started successfully")
+        except Exception as e:
+            logger.error(f"[ERROR] Scheduler startup failed: {str(e)}")
+    else:
+        logger.info("[INFO] Scheduler disabled in production (use Cloud Scheduler instead)")
 
     yield
 
@@ -65,6 +70,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://greenwire.yeon.site",
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",

@@ -50,9 +50,5 @@ ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# 헬스체크 추가
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8080/health', timeout=5)"
-
 # 실행
 CMD ["./start.sh"]
