@@ -1,17 +1,42 @@
 steps:
+  # 1. Docker 이미지 빌드
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/ms-ai-foundry-backend', '.']
+    timeout: 1200s  # 20분 (Playwright 설치 시간 고려)
+
+  # 2. Container Registry에 푸시
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/ms-ai-foundry-backend']
+
+  # 3. Cloud Run에 배포
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
-    args: [
-      'run', 'deploy', 'ms-ai-foundry-backend',
-      '--image', 'gcr.io/$PROJECT_ID/ms-ai-foundry-backend',
-      '--region', 'asia-northeast3',
-      '--platform', 'managed',
-      '--allow-unauthenticated',
-      '--memory', '1Gi',
-      '--cpu', '1',
-      '--port', '8080'
-    ]
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ms-ai-foundry-backend'
+      - '--image=gcr.io/$PROJECT_ID/ms-ai-foundry-backend'
+      - '--region=asia-northeast3'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=2Gi'  # PDF 생성 및 AI 처리를 위해 2GB로 증가
+      - '--cpu=2'  # CPU 2코어
+      - '--timeout=300'  # 5분 타임아웃
+      - '--concurrency=80'  # 동시 처리 요청 수
+      - '--max-instances=10'  # 최대 인스턴스 수
+      - '--min-instances=1'  # 최소 인스턴스 1개 (콜드 스타트 방지)
+      - '--port=8080'
+      - '--set-env-vars=PORT=8080,PYTHONUNBUFFERED=1,ENVIRONMENT=production'
+      # 환경 변수는 Secret Manager 사용 (아래 주석 참조)
+
+# 빌드 타임아웃 설정
+timeout: 1800s  # 30분
+
+# 빌드 옵션
+options:
+  machineType: 'E2_HIGHCPU_8'  # 빌드 성능 향상
+  logging: CLOUD_LOGGING_ONLY
+
+# 이미지
+images:
+  - 'gcr.io/$PROJECT_ID/ms-ai-foundry-backend'

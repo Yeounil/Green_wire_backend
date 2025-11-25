@@ -410,7 +410,18 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. 패키지 설치
 pip install -r requirements.txt
 
-# 4. 환경 변수 설정
+# 4. Playwright 브라우저 설치 (PDF 생성용)
+# Windows:
+install_playwright.bat
+
+# Linux/Mac:
+chmod +x install_playwright.sh
+./install_playwright.sh
+
+# 또는 직접 실행:
+python -m playwright install chromium
+
+# 5. 환경 변수 설정
 cp .env.example .env
 # .env 파일 편집 (아래 "환경 변수 설정" 참조)
 ```
@@ -957,28 +968,62 @@ POST /api/v2/auth/login
 
 ## 🚢 배포
 
-### Docker
+### Google Cloud Run (권장)
+
+#### 빠른 배포 (5분)
+
+```bash
+# 1. 프로젝트 설정
+export GCP_PROJECT_ID="your-project-id"
+gcloud config set project $GCP_PROJECT_ID
+
+# 2. 환경 변수 설정 (Secret Manager)
+# QUICKSTART.md 참조
+
+# 3. 배포 실행
+./deploy.sh  # Linux/Mac
+deploy.bat   # Windows
+```
+
+#### 수동 배포
+
+```bash
+# Cloud Build로 빌드 및 배포
+gcloud builds submit --config cloudbuild.yaml --timeout=30m
+
+# Secret 연결
+gcloud run services update ms-ai-foundry-backend \
+  --region=asia-northeast3 \
+  --update-secrets=SECRET_KEY=SECRET_KEY:latest,...
+```
+
+**상세 가이드**:
+- 📖 [QUICKSTART.md](QUICKSTART.md) - 5분 빠른 시작
+- 📚 [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - 전체 배포 가이드
+
+### Docker (로컬 테스트)
 
 ```bash
 # 이미지 빌드
 docker build -t ai-finance-backend .
 
 # 컨테이너 실행
-docker run -p 8000:8000 --env-file .env ai-finance-backend
+docker run -p 8080:8080 --env-file .env ai-finance-backend
 ```
 
-### Google Cloud Run
+### 배포 후 확인
 
 ```bash
-# Cloud Build 실행
-gcloud builds submit --config cloudbuild.yaml
+# 서비스 URL 확인
+gcloud run services describe ms-ai-foundry-backend \
+  --region=asia-northeast3 \
+  --format="value(status.url)"
 
-# 배포
-gcloud run deploy ai-finance-backend \
-  --image gcr.io/your-project/ai-finance-backend \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
+# 헬스 체크
+curl https://your-service-url.run.app/health
+
+# Swagger 문서
+# https://your-service-url.run.app/docs
 ```
 
 ---

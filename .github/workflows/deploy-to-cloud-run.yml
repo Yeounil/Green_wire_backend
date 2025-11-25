@@ -1,0 +1,90 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 push될 때 자동 배포
+    paths:
+      - 'backend/**'  # backend 폴더 변경 시에만 배포
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: ms-ai-foundry-backend
+  REGION: asia-northeast3
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Google Cloud 인증
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 3. Cloud SDK 설정
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 4. Docker 인증
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker
+
+      # 5. Cloud Build로 빌드 및 배포
+      - name: Build and Deploy to Cloud Run
+        run: |
+          cd backend
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --timeout=30m \
+            --project=${{ env.PROJECT_ID }}
+
+      # 6. Secret 연결 (필요시)
+      - name: Update Secrets
+        run: |
+          gcloud run services update ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-secrets=SECRET_KEY=SECRET_KEY:latest,\
+SUPABASE_URL=SUPABASE_URL:latest,\
+SUPABASE_KEY=SUPABASE_KEY:latest,\
+OPENAI_API_KEY=OPENAI_API_KEY:latest,\
+ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,\
+NEWS_API_KEY=NEWS_API_KEY:latest,\
+FMP_API_KEY=FMP_API_KEY:latest,\
+PINECONE_API_KEY=PINECONE_API_KEY:latest,\
+PINECONE_INDEX_NAME=PINECONE_INDEX_NAME:latest,\
+PINECONE_ENVIRONMENT=PINECONE_ENVIRONMENT:latest,\
+RESEND_API_KEY=RESEND_API_KEY:latest \
+            --project=${{ env.PROJECT_ID }}
+
+      # 7. 배포 확인
+      - name: Verify Deployment
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --project=${{ env.PROJECT_ID }} \
+            --format="value(status.url)")
+
+          echo "Service URL: $SERVICE_URL"
+
+          # 헬스 체크
+          curl -f $SERVICE_URL/health || exit 1
+
+      # 8. Slack 알림 (선택)
+      - name: Notify Slack
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Deployment to Cloud Run: ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
