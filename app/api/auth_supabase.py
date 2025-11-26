@@ -220,8 +220,8 @@ async def login(user_credentials: UserLogin, request: Request, response: Respons
         key="access_token",
         value=access_token,
         httponly=True,  # JavaScript에서 접근 불가 (XSS 방지)
-        secure=is_production,  # 프로덕션에서만 HTTPS 필수
-        samesite="lax", # CSRF 방지
+        secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+        samesite="none",  # 크로스 도메인 쿠키 허용
         max_age=settings.access_token_expire_minutes * 60,  # 초 단위
         path="/",
         domain=None  # 도메인 제한 없음 (localhost 호환)
@@ -232,8 +232,8 @@ async def login(user_credentials: UserLogin, request: Request, response: Respons
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=is_production,
-        samesite="lax",
+        secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+        samesite="none",  # 크로스 도메인 쿠키 허용
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,  # 7일
         path="/",
         domain=None
@@ -391,8 +391,8 @@ async def refresh_token(
         key="access_token",
         value=new_access_token,
         httponly=True,
-        secure=is_production,
-        samesite="lax",
+        secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+        samesite="none",  # 크로스 도메인 쿠키 허용
         max_age=settings.access_token_expire_minutes * 60,
         path="/",
         domain=None
@@ -402,8 +402,8 @@ async def refresh_token(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=is_production,
-        samesite="lax",
+        secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+        samesite="none",  # 크로스 도메인 쿠키 허용
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path="/",
         domain=None

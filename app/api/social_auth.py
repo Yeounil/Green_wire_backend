@@ -234,8 +234,8 @@ async def social_login(provider: str, login_request: SocialLoginRequest, request
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=is_production,
-            samesite="lax",
+            secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+            samesite="none",  # 크로스 도메인 쿠키 허용
             max_age=settings.access_token_expire_minutes * 60,
             path="/",
             domain=None
@@ -245,8 +245,8 @@ async def social_login(provider: str, login_request: SocialLoginRequest, request
             key="refresh_token",
             value=refresh_token,
             httponly=True,
-            secure=is_production,
-            samesite="lax",
+            secure=True,  # HTTPS 필수 (samesite=none 요구사항)
+            samesite="none",  # 크로스 도메인 쿠키 허용
             max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
             path="/",
             domain=None
