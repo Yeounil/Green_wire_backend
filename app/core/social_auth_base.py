@@ -89,7 +89,9 @@ class SocialAuthProvider(ABC):
         Returns:
             JSON 응답
         """
-        async with httpx.AsyncClient() as client:
+        # 타임아웃 설정: 연결 30초, 읽기 30초 (모바일 네트워크 대응)
+        timeout = httpx.Timeout(30.0, connect=30.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.request(
                 method=method,
                 url=url,
