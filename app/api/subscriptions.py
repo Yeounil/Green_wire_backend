@@ -32,7 +32,7 @@ class UpdateSubscriptionRequest(BaseModel):
     is_active: Optional[bool] = None
 
 
-@router.post("/")
+@router.post("")
 async def create_subscription(
     request: CreateSubscriptionRequest,
     current_user: dict = Depends(get_current_user)
@@ -94,7 +94,7 @@ async def create_subscription(
         raise HTTPException(status_code=500, detail=f"구독 생성 오류: {str(e)}")
 
 
-@router.get("/")
+@router.get("")
 async def get_subscriptions(
     current_user: dict = Depends(get_current_user)
 ):
