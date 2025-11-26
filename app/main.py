@@ -64,7 +64,8 @@ app = FastAPI(
     title="AI Finance News Recommendation System",
     description="AI-powered financial news recommendation and analysis system with Supabase Cloud",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 app.add_middleware(
